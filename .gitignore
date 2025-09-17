@@ -5,8 +5,6 @@
 *.so
 *.dylib
 bin/
-gencert*
-gencert-*
 
 # Test binary, built with `go test -c`
 *.test
