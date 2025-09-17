@@ -28,6 +28,14 @@ jobs:
         run: |
           bash scripts/build.sh
 
+      - name: Ensure zip is available
+        shell: bash
+        run: |
+          if ! command -v zip >/dev/null 2>&1; then
+            sudo apt-get update
+            sudo apt-get install -y zip
+          fi
+
       - name: Package archives (zip/tar.gz)
         shell: bash
         run: |
@@ -58,6 +66,12 @@ jobs:
             (cd tmp && tar -czf "../dist/gencert-macos-${arch}.tar.gz" gencert)
           done
           rm -rf tmp
+
+      - name: List built files
+        shell: bash
+        run: |
+          echo "== bin =="; ls -la bin || true
+          echo "== dist =="; ls -la dist || true
 
       - name: Generate checksums for archives
         shell: bash
@@ -102,4 +116,5 @@ jobs:
             bin/gencert-*
             bin/sha256sums.txt
             dist/*
+          fail_on_unmatched_files: true
           generate_release_notes: true
