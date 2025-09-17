@@ -6,7 +6,7 @@ import (
 )
 
 // 默认版本信息
-const DefaultVersion = "1.2.0"
+const DefaultVersion = "1.3.0"
 
 // 版本信息
 var (

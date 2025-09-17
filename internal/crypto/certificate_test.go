@@ -196,6 +196,45 @@ func TestCertificateManager_addSANExtension(t *testing.T) {
 	assert.Contains(t, template.DNSNames, "admin.test.example.com")
 }
 
+func TestCertificateManager_addSANExtension_WithIPv4(t *testing.T) {
+	tempDir, err := os.MkdirTemp("", "gencert-test-ip")
+	require.NoError(t, err)
+	defer os.RemoveAll(tempDir)
+
+	cfg := &config.Config{
+		RootCADir:    filepath.Join(tempDir, "ca"),
+		CertDir:      filepath.Join(tempDir, "certs"),
+		LogDir:       filepath.Join(tempDir, "logs"),
+		Country:      "CN",
+		State:        "Shanghai",
+		Locality:     "Hongqiao",
+		Organization: "Test Org",
+		OrgUnit:      "Test Unit",
+		CommonName:   "test.com",
+	}
+
+	log := logger.New(true)
+	certMgr := NewCertificateManager(cfg, log)
+
+	template := &x509.Certificate{
+		SerialNumber: big.NewInt(987654321),
+		Subject:      pkix.Name{CommonName: "192.168.1.10"},
+		NotBefore:    time.Now(),
+		NotAfter:     time.Now().AddDate(1, 0, 0),
+	}
+
+	domain := "192.168.1.10"
+	alt := []string{"10.0.0.2", "svc.internal"}
+	err = certMgr.addSANExtension(template, domain, alt)
+	require.NoError(t, err)
+
+	// 期望：两个 IPv4 进入 IPAddresses，域名进入 DNSNames
+	assert.Contains(t, template.DNSNames, "svc.internal")
+	assert.NotContains(t, template.DNSNames, "192.168.1.10")
+	assert.NotContains(t, template.DNSNames, "10.0.0.2")
+	require.GreaterOrEqual(t, len(template.IPAddresses), 2)
+}
+
 func TestCertificateManager_generateCertificateChains(t *testing.T) {
 	// 创建临时目录
 	tempDir, err := os.MkdirTemp("", "gencert-test")

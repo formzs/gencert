@@ -5,6 +5,7 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"fmt"
+	"net"
 	"os"
 	"path/filepath"
 	"time"
@@ -171,17 +172,45 @@ func (cm *CertificateManager) generateClientCertificate(domain string, rootCert 
 
 // addSANExtension 添加SAN扩展
 func (cm *CertificateManager) addSANExtension(template *x509.Certificate, domain string, altDomains []string) error {
-	// 创建DNS名称列表
-	dnsNames := []string{domain}
-	for _, altDomain := range altDomains {
-		dnsNames = append(dnsNames, altDomain)
+	var dnsNames []string
+	var ipAddrs []net.IP
+
+	addOne := func(s string) {
+		if s == "" {
+			return
+		}
+		if ip := net.ParseIP(s); ip != nil {
+			// 仅支持 IPv4（不包含冒号）
+			if len(s) > 0 && !containsColon(s) {
+				ipAddrs = append(ipAddrs, ip)
+				return
+			}
+			// IPv6 暂不支持，回退为 DNS 名称（不会通过按 IP 校验）
+		}
+		dnsNames = append(dnsNames, s)
 	}
 
-	// 设置DNSNames字段，Go的x509包会自动处理SAN扩展
-	template.DNSNames = dnsNames
-	cm.logger.Debug("设置SAN扩展", logger.Str("dns_names", fmt.Sprintf("%v", dnsNames)))
+	addOne(domain)
+	for _, v := range altDomains {
+		addOne(v)
+	}
 
+	template.DNSNames = dnsNames
+	template.IPAddresses = ipAddrs
+	cm.logger.Debug("设置SAN扩展", logger.Str("dns_names", fmt.Sprintf("%v", dnsNames)))
+	if len(ipAddrs) > 0 {
+		cm.logger.Debug("设置IP SAN", logger.Str("ips", fmt.Sprintf("%v", ipAddrs)))
+	}
 	return nil
+}
+
+func containsColon(s string) bool {
+	for i := 0; i < len(s); i++ {
+		if s[i] == ':' {
+			return true
+		}
+	}
+	return false
 }
 
 // generateCertificateChains 生成证书链

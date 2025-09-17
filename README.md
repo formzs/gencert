@@ -1,11 +1,11 @@
 # GenCert - 证书生成
 
-GenCert 是面向开发测试的纯 Go 证书工具，可一键生成根 CA、服务器/客户端证书并输出 PEM、PKCS12、JKS 等格式；支持多平台构建、交互式配置、日志追踪，让本地 HTTPS/TLS 搭建更高效安全。
+GenCert 是面向开发测试的纯 Go 证书工具，可一键生成根 CA、服务器/客户端证书并输出 PEM、PKCS12、JKS 等格式；支持 IPv4 IP 证书（自动写入 SAN）、多平台构建、交互式配置、日志追踪，让本地 HTTPS/TLS 搭建更高效安全。
 
 ## 特性
 
 - 🔐 **全面输出**: 一次生成根CA、服务器/客户端证书及 PEM、PKCS12、JKS、TrustStore 全量制品
-- 🌐 **多域名 & 通配符**: SAN 扩展、批量域名、`*.example.com` 通配符场景全覆盖
+- 🌐 **域名 & IPv4 & 通配符**: SAN 扩展、IPv4 IP 证书、批量域名、`*.example.com` 通配符全覆盖
 - 🧭 **零依赖部署**: 纯 Go 实现，跨 Windows、Linux、macOS 无须 OpenSSL
 - 🛠️ **配置友好**: 支持 YAML 初始化、交互式向导、`--san`/`--config` 等多参数组合
 - 📁 **结构化输出**: 所有生成文件统一落地到同级 `gencert-data/` 目录，便于备份与集成
@@ -107,6 +107,13 @@ Select-String -Path sha256sums-archives.txt -Pattern $h
 
 # 生成通配符证书（注意为避免 shell 展开请加引号）
 ./gencert "*.example.com" --san api.rest.example.com
+
+# 生成 IP 证书（仅支持 IPv4）
+./gencert "192.168.1.10"
+# 作为主标识：
+./gencert "192.168.1.10" --san 10.0.0.2
+# 或作为 SAN：
+./gencert example.com --san 192.168.1.10 --san 10.0.0.2
 
 # 使用指定配置文件生成证书
 ./gencert -c configs/test.yaml generate test.example.com
@@ -511,6 +518,12 @@ String url = "jdbc:postgresql://example.com:5432/dbname?" +
 
 
 ## 更新日志
+
+### v1.3.0 (2025-09-17)
+- ✨ 支持 IPv4 IP 证书：
+  - 主参数为 IPv4 或通过 `--san` 传入 IPv4 时，自动写入证书 SAN.IPAddresses（IPv6 暂不支持）
+- 📝 文档更新：增加 IP 证书示例与下载校验说明同步
+- 🧰 构建/发布稳定性：GitHub Actions 发布流程增强（产物打包与覆盖上传、校验文件重命名避免冲突）
 
 ### v1.2.0 (2025-09-17)
 - ✨ 新增 PKCS12 子命令：
