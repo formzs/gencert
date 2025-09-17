@@ -64,21 +64,22 @@ go build -o bin\gencert.exe cmd\gencert\main.go
   - Windows：`gencert-windows-<arch>.zip`（压缩包内文件名为 `gencert.exe`）
   - Linux：`gencert-linux-<arch>.tar.gz`（压缩包内文件名为 `gencert`）
   - macOS：`gencert-macos-<arch>.tar.gz`（压缩包内文件名为 `gencert`）
-- 校验文件：`sha256sums.txt`（二进制）与 `dist/sha256sums.txt`（压缩包）
-- 可选签名：`dist/sha256sums.txt.asc`（GPG 署名）
+- 校验文件：`sha256sums-binaries.txt`（原始二进制）与 `sha256sums-archives.txt`（压缩包）
+- 可选签名：`sha256sums-archives.txt.asc`（GPG 署名）
 
 下载与校验示例：
 
 ```bash
-# Linux/macOS
+# Linux/macOS（下载压缩包并校验）
 curl -LO https://github.com/formzs/gencert/releases/download/vX.Y.Z/gencert-linux-amd64.tar.gz
-curl -LO https://github.com/formzs/gencert/releases/download/vX.Y.Z/dist/sha256sums.txt
-sha256sum -c sha256sums.txt | grep gencert-linux-amd64.tar.gz
+curl -LO https://github.com/formzs/gencert/releases/download/vX.Y.Z/sha256sums-archives.txt
+sha256sum -c sha256sums-archives.txt | grep gencert-linux-amd64.tar.gz
 
-# Windows (PowerShell)
+# Windows (PowerShell，下载压缩包并人工比对)
 Invoke-WebRequest -Uri "https://github.com/formzs/gencert/releases/download/vX.Y.Z/gencert-windows-amd64.zip" -OutFile gencert-windows-amd64.zip
-Invoke-WebRequest -Uri "https://github.com/formzs/gencert/releases/download/vX.Y.Z/dist/sha256sums.txt" -OutFile sha256sums.txt
-Get-FileHash gencert-windows-amd64.zip -Algorithm SHA256
+Invoke-WebRequest -Uri "https://github.com/formzs/gencert/releases/download/vX.Y.Z/sha256sums-archives.txt" -OutFile sha256sums-archives.txt
+$h = (Get-FileHash gencert-windows-amd64.zip -Algorithm SHA256).Hash.ToLower()
+Select-String -Path sha256sums-archives.txt -Pattern $h
 ```
 
 ### 使用方法
