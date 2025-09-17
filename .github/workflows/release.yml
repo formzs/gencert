@@ -86,6 +86,13 @@ jobs:
             shasum -a 256 * | awk '{print $1, " ", $2}' > sha256sums.txt
           fi
 
+      - name: Rename checksum files to avoid name conflicts
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -f bin/sha256sums.txt ]; then mv bin/sha256sums.txt bin/sha256sums-binaries.txt; fi
+          if [ -f dist/sha256sums.txt ]; then mv dist/sha256sums.txt dist/sha256sums-archives.txt; fi
+
       - name: Check GPG secrets
         id: gpg
         shell: bash
@@ -109,7 +116,11 @@ jobs:
         if: steps.gpg.outputs.has_gpg == 'true'
         run: |
           cd dist
-          gpg --batch --yes --armor --detach-sign --output sha256sums.txt.asc sha256sums.txt
+          if [ -f sha256sums-archives.txt ]; then
+            gpg --batch --yes --armor --detach-sign --output sha256sums-archives.txt.asc sha256sums-archives.txt
+          else
+            echo "No archives checksum to sign"
+          fi
 
       - name: Create/Update release and upload assets (clobber)
         shell: bash
@@ -123,7 +134,7 @@ jobs:
             gh release create "$TAG" --generate-notes -t "GenCert $TAG" -n "Automated release for $TAG"
           fi
           shopt -s nullglob
-          files=(bin/gencert-* bin/sha256sums.txt dist/*)
+          files=(bin/gencert-* bin/sha256sums-binaries.txt dist/*)
           if [ ${#files[@]} -eq 0 ]; then
             echo "No assets found to upload" >&2
             exit 1
