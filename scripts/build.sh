@@ -62,11 +62,11 @@ build_binary() {
     export GOARCH="$arch"
     export CGO_ENABLED=0
 
-    # 构建命令
-    go build \
+    # 构建命令（在项目根目录执行，避免相对路径问题）
+    (cd "$PROJECT_ROOT" && go build \
         -ldflags="-X 'github.com/formzs/gencert/internal/version.Version=$VERSION' -X 'github.com/formzs/gencert/internal/version.BuildTime=$BUILD_TIME' -X 'github.com/formzs/gencert/internal/version.CommitHash=$COMMIT_HASH'" \
         -o "$output_path" \
-        ./cmd/gencert
+        ./cmd/gencert)
 
     echo "✓ 构建完成: $output_path"
 }
