@@ -111,12 +111,22 @@ jobs:
           cd dist
           gpg --batch --yes --armor --detach-sign --output sha256sums.txt.asc sha256sums.txt
 
-      - name: Upload Release Assets
-        uses: softprops/action-gh-release@v2
-        with:
-          files: |
-            bin/gencert-*
-            bin/sha256sums.txt
-            dist/*
-          fail_on_unmatched_files: true
-          generate_release_notes: true
+      - name: Create/Update release and upload assets (clobber)
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          TAG="${GITHUB_REF_NAME}"
+          # Ensure release exists
+          if ! gh release view "$TAG" >/dev/null 2>&1; then
+            gh release create "$TAG" --generate-notes -t "GenCert $TAG" -n "Automated release for $TAG"
+          fi
+          shopt -s nullglob
+          files=(bin/gencert-* bin/sha256sums.txt dist/*)
+          if [ ${#files[@]} -eq 0 ]; then
+            echo "No assets found to upload" >&2
+            exit 1
+          fi
+          # Upload with overwrite if exists
+          gh release upload "$TAG" "${files[@]}" --clobber
