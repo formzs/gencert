@@ -23,6 +23,7 @@ jobs:
           go-version: '1.22.x'
           cache: true
 
+
       - name: Build all targets
         shell: bash
         run: |
