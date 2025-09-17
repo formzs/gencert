@@ -70,15 +70,27 @@ jobs:
             shasum -a 256 * | awk '{print $1, " ", $2}' > sha256sums.txt
           fi
 
+      - name: Check GPG secrets
+        id: gpg
+        shell: bash
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+        run: |
+          if [ -n "${GPG_PRIVATE_KEY}" ]; then
+            echo "has_gpg=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_gpg=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Import GPG key (optional)
-        if: ${{ secrets.GPG_PRIVATE_KEY != '' }}
+        if: steps.gpg.outputs.has_gpg == 'true'
         uses: crazy-max/ghaction-import-gpg@v6
         with:
           gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
           passphrase: ${{ secrets.GPG_PASSPHRASE }}
 
       - name: Sign checksums (optional)
-        if: ${{ secrets.GPG_PRIVATE_KEY != '' }}
+        if: steps.gpg.outputs.has_gpg == 'true'
         run: |
           cd dist
           gpg --batch --yes --armor --detach-sign --output sha256sums.txt.asc sha256sums.txt
