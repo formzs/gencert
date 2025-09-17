@@ -1,0 +1,27 @@
+# GenCert 配置文件
+# 这是 GenCert 的默认配置文件，您可以根据需要修改
+
+# 调试模式
+debug: false
+
+# 目录配置
+root_ca_dir: ../gencert-data/ca
+cert_dir: ../gencert-data/certs
+log_dir: ../gencert-data/logs
+
+# 证书主题信息
+country: CN
+state: Beijing
+locality: ChaoYang
+organization: CA
+org_unit: Development
+common_name: Development CA
+
+# 证书参数
+default_bits: 2048
+default_days: 3650
+
+# PKCS12配置
+pkcs12:
+  default_password: "HelloGenCert"
+  friendly_name: "GenCert Client Certificate"

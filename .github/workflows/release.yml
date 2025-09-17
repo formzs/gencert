@@ -1,0 +1,93 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    name: Build and Release Artifacts
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22.x'
+          cache: true
+
+      - name: Build all targets
+        shell: bash
+        run: |
+          bash scripts/build.sh
+
+      - name: Package archives (zip/tar.gz)
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist tmp
+          # Windows zip (normalize inner name to gencert.exe)
+          for f in bin/gencert-windows-*.exe; do
+            [ -f "$f" ] || continue
+            arch=$(basename "$f" | sed -E 's/^gencert-windows-([^.]+)\.exe$/\1/')
+            rm -f tmp/gencert.exe
+            cp "$f" tmp/gencert.exe
+            (cd tmp && zip -9 "../dist/gencert-windows-${arch}.zip" gencert.exe)
+          done
+          # Linux tar.gz (normalize inner name to gencert)
+          for f in bin/gencert-linux-*; do
+            [ -f "$f" ] || continue
+            arch=$(basename "$f" | sed -E 's/^gencert-linux-(.+)$/\1/')
+            rm -f tmp/gencert
+            cp "$f" tmp/gencert
+            (cd tmp && tar -czf "../dist/gencert-linux-${arch}.tar.gz" gencert)
+          done
+          # macOS tar.gz (normalize inner name to gencert)
+          for f in bin/gencert-macos-*; do
+            [ -f "$f" ] || continue
+            arch=$(basename "$f" | sed -E 's/^gencert-macos-(.+)$/\1/')
+            rm -f tmp/gencert
+            cp "$f" tmp/gencert
+            (cd tmp && tar -czf "../dist/gencert-macos-${arch}.tar.gz" gencert)
+          done
+          rm -rf tmp
+
+      - name: Generate checksums for archives
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd dist
+          if command -v sha256sum >/dev/null 2>&1; then
+            sha256sum * > sha256sums.txt
+          else
+            shasum -a 256 * | awk '{print $1, " ", $2}' > sha256sums.txt
+          fi
+
+      - name: Import GPG key (optional)
+        if: ${{ secrets.GPG_PRIVATE_KEY != '' }}
+        uses: crazy-max/ghaction-import-gpg@v6
+        with:
+          gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
+          passphrase: ${{ secrets.GPG_PASSPHRASE }}
+
+      - name: Sign checksums (optional)
+        if: ${{ secrets.GPG_PRIVATE_KEY != '' }}
+        run: |
+          cd dist
+          gpg --batch --yes --armor --detach-sign --output sha256sums.txt.asc sha256sums.txt
+
+      - name: Upload Release Assets
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            bin/gencert-*
+            bin/sha256sums.txt
+            dist/*
+          generate_release_notes: true
